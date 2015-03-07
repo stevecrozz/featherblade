@@ -12,7 +12,7 @@ module Featherblade
 
     parser = CssParser::Parser.new
     parser.add_block!(css.dup)
-    @css[css] = parser.instance_variable_get(:@rules).map { |r| r[:rules] }
+    @css[css] = parser.rules_by_media_query
   end
 
   def self.strip_selector(selector)
@@ -32,17 +32,36 @@ module Featherblade
     selectors
   end
 
-  def self.replacement(html, rules)
+  def self.replacement(html, rules_by_media_query)
     doc = Nokogiri::HTML(html)
-    matched = Set.new
+    ret = ''
 
-    rules.each do |rule|
-      rule.selectors.each do |selector|
-        matched << rule unless doc.css(strip_selector(selector)).empty?
+    rules_by_media_query.each do |media_query, rules|
+      matched_rules = Set.new
+
+      rules.each do |rule|
+        matched_selectors = Set.new
+
+        rule.selectors.each do |selector|
+          matched_selectors << selector unless doc.css(strip_selector(selector)).empty?
+        end
+
+        next if matched_selectors.empty?
+        new_rule = rule.dup
+        new_rule.instance_variable_set(:@selectors, matched_selectors.to_a)
+        matched_rules << new_rule
+      end
+
+      next if matched_rules.empty?
+
+      if media_query == :all
+        ret << matched_rules.map(&:to_s).join
+      else
+        ret << sprintf("@media #{media_query}{%s}", matched_rules.map(&:to_s).join)
       end
     end
 
-    matched.map(&:to_s).join
+    ret
   end
 
   def self.with_measurement(page, &block)
