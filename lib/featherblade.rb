@@ -74,7 +74,7 @@ module Featherblade
     Jekyll.logger.info "Featherblade: shaved #{shaved} from #{page.path}"
   end
 
-  def self.scrub(page)
+  def self.shave(page)
     with_measurement(page) do
       @css.each do |block, rules|
         page.output.gsub!(block) { self.replacement(page.output, rules) }
@@ -83,7 +83,7 @@ module Featherblade
   end
 
   module Filter
-    def scrub_css(css)
+    def featherblade(css)
       Featherblade.record_css(css)
       css
     end
@@ -92,4 +92,4 @@ end
 
 Liquid::Template.register_filter(Featherblade::Filter)
 
-Jekyll::Hooks.register Jekyll::Page, :post_render, &Featherblade.method(:scrub)
+Jekyll::Hooks.register Jekyll::Page, :post_render, &Featherblade.method(:shave)
