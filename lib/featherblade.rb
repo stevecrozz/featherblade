@@ -4,6 +4,8 @@ require 'nokogiri'
 require 'css_parser'
 require 'set'
 
+require_relative 'featherblade/filter'
+
 module Featherblade
   @css = {}
 
@@ -82,14 +84,14 @@ module Featherblade
     end
   end
 
-  module Filter
-    def featherblade(css)
-      Featherblade.record_css(css)
-      css
-    end
+  def self.register_liquid_filter
+    Liquid::Template.register_filter(Featherblade::Filter)
+  end
+
+  def self.register_jekyll_hook
+    Jekyll::Hooks.register Jekyll::Page, :post_render, &Featherblade.method(:shave)
   end
 end
 
-Liquid::Template.register_filter(Featherblade::Filter)
-
-Jekyll::Hooks.register Jekyll::Page, :post_render, &Featherblade.method(:shave)
+Featherblade.register_liquid_filter
+Featherblade.register_jekyll_hook
